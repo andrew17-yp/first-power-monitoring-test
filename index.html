@@ -12,7 +12,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
+        * { box-spacing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
         body { background-color: #1e222b; color: #e1e6ed; padding: 20px; }
         
         .header { display: flex; justify-content: space-between; align-items: center; background: #282c34; padding: 15px 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.2); margin-bottom: 20px; }
@@ -86,7 +86,6 @@
         </tbody>
     </table>
 
-    <!-- Section Grafik Baru -->
     <div class="chart-container">
         <div class="chart-card">
             <h3><i class="fa-solid fa-chart-area" style="color: #e06c75;"></i> Tren Tegangan (Volt)</h3>
@@ -96,7 +95,9 @@
             <h3><i class="fa-solid fa-chart-area" style="color: #61afef;"></i> Tren Arus (Ampere)</h3>
             <canvas id="currentChart"></canvas>
         </div>
+    </div>
 
+    <!-- SCRIPT UTAMA DILETAKKAN DI PALING BAWAH AGAR CANVAS SELESAI DI-RENDER DULU -->
     <script src="script.js"></script>
 </body>
 </html>
