@@ -44,9 +44,9 @@ function onConnectionLost(responseObject) {
 }
 
 // ==================== INISIALISASI GRAFIK (CHART.JS) ====================
-const maxDataPoints = 15; // Jumlah histori poin data yang tampil di grafik
+const maxDataPoints = 15; // Batas maksimal titik data yang tampil di grafik (geser otomatis)
 
-// Opsi konfigurasi umum untuk grafik agar serasi dengan tema dark mode
+// Opsi konfigurasi umum untuk tampilan grafik Dark Mode
 const chartOptions = {
     responsive: true,
     scales: {
@@ -56,12 +56,12 @@ const chartOptions = {
     plugins: { legend: { labels: { color: '#abb2bf' } } }
 };
 
-// 1. Grafik Tegangan
+// 1. Inisialisasi Grafik Tegangan (Voltage Chart)
 const ctxV = document.getElementById('voltageChart').getContext('2d');
 const voltageChart = new Chart(ctxV, {
     type: 'line',
     data: {
-        labels: [], // Label waktu (X)
+        labels: [], // Label Waktu (Sumbu X)
         datasets: [
             { label: 'Fasa R', data: [], borderColor: '#e06c75', tension: 0.3, pointRadius: 2 },
             { label: 'Fasa S', data: [], borderColor: '#d19a66', tension: 0.3, pointRadius: 2 },
@@ -71,12 +71,12 @@ const voltageChart = new Chart(ctxV, {
     options: chartOptions
 });
 
-// 2. Grafik Arus
+// 2. Inisialisasi Grafik Arus (Current Chart)
 const ctxI = document.getElementById('currentChart').getContext('2d');
 const currentChart = new Chart(ctxI, {
     type: 'line',
     data: {
-        labels: [],
+        labels: [], // Label Waktu (Sumbu X)
         datasets: [
             { label: 'Fasa R', data: [], borderColor: '#e06c75', tension: 0.3, pointRadius: 2 },
             { label: 'Fasa S', data: [], borderColor: '#d19a66', tension: 0.3, pointRadius: 2 },
@@ -86,34 +86,35 @@ const currentChart = new Chart(ctxI, {
     options: chartOptions
 });
 
-// Fungsi pembantu untuk update grafik secara real-time
-void function updateChartData(chart, labelTime, valR, valS, valT) {
-    // Tambah data baru ke array paling belakang
+// Fungsi pembantu untuk mendorong data baru dan menggeser data lama pada grafik
+function updateChartData(chart, labelTime, valR, valS, valT) {
     chart.data.labels.push(labelTime);
     chart.data.datasets[0].data.push(valR);
     chart.data.datasets[1].data.push(valS);
     chart.data.datasets[2].data.push(valT);
 
-    // Jika data melebihi batas maksimum, hapus data paling awal (shift)
+    // Jika data melewati batas maxDataPoints, hapus data paling kiri/lama
     if (chart.data.labels.length > maxDataPoints) {
         chart.data.labels.shift();
         chart.data.datasets[0].data.shift();
         chart.data.datasets[1].data.shift();
         chart.data.datasets[2].data.shift();
     }
-    chart.update(); // Render ulang grafik
+    chart.update(); // Render ulang grafik secara real-time
 }
 
-// ========== FUNGSI PARSING DATA & MASUKKAN KE CHART ==========
+// ========== FUNGSI UTAMA PARSING DATA DARI BROKER ==========
 function onMessageArrived(message) {
     try {
         const data = JSON.parse(message.payloadString);
         
-        // Ambil waktu lokal saat data masuk sebagai label sumbu X
+        // Mengambil waktu lokal PC/HP saat data masuk
         const now = new Date();
-        const timeLabel = now.getHours() + ":" + now.getMinutes() + ":" + now.getSeconds();
+        const timeLabel = now.getHours().toString().padStart(2, '0') + ":" + 
+                          now.getMinutes().toString().padStart(2, '0') + ":" + 
+                          now.getSeconds().toString().padStart(2, '0');
         
-        // 1. Tampilkan ke Tabel HTML
+        // 1. UPDATE DATA PADA TABEL MONITORING (HTML)
         if(data.vr !== undefined) document.getElementById("v-r").innerText = data.vr;
         if(data.vs !== undefined) document.getElementById("v-s").innerText = data.vs;
         if(data.vt !== undefined) document.getElementById("v-t").innerText = data.vt;
@@ -130,15 +131,15 @@ function onMessageArrived(message) {
         if(data.thds !== undefined) document.getElementById("thd-s").innerText = data.thds;
         if(data.thdt !== undefined) document.getElementById("thd-t").innerText = data.thdt;
 
-        // 2. Masukkan Data ke Grafik secara Real-Time
+        // 2. UPDATE DATA PADA GRAFIK (Konversi String ke Angka Murni)
         if(data.vr !== undefined && data.vs !== undefined && data.vt !== undefined) {
-            updateChartData(voltageChart, timeLabel, data.vr, data.vs, data.vt);
+            updateChartData(voltageChart, timeLabel, parseFloat(data.vr), parseFloat(data.vs), parseFloat(data.vt));
         }
         if(data.ir !== undefined && data.is !== undefined && data.it !== undefined) {
-            updateChartData(currentChart, timeLabel, data.ir, data.is, data.it);
+            updateChartData(currentChart, timeLabel, parseFloat(data.ir), parseFloat(data.is), parseFloat(data.it));
         }
 
     } catch (e) {
-        console.log("Gagal parsing JSON atau mengupdate grafik.");
+        console.log("Gagal memproses data atau memperbarui grafik: " + e);
     }
 }
