@@ -3,7 +3,7 @@ const host = "b9057cb1f8534a298a1943e4cb1af3ba.s1.eu.hivemq.cloud";
 const port = 8884; 
 const username = "minsel";
 const password = "SasaMinsel123";
-const topicSub = "monitoring/power/data"; 
+const topicSub = "tes/saja"; 
 // ============================================================
 
 const clientId = "web_power_client_" + Math.random().toString(16).substr(2, 8);
