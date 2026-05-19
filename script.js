@@ -1,9 +1,9 @@
 // ==================== KONFIGURASI HIVEMQ ====================
-const host = "b9057cb1f8534a298a1943e4cb1af3ba.s1.eu.hivemq.cloud"; // Contoh: xxxxx.s1.eu.hivemq.cloud (Tanpa wss:// atau port)
-const port = 8884; // Port standar Secure WebSocket HiveMQ Cloud
+const host = "b9057cb1f8534a298a1943e4cb1af3ba.s1.eu.hivemq.cloud"; 
+const port = 8884; 
 const username = "minsel";
 const password = "SasaMinsel123";
-const topicSub = "tes/saja"; // Topik yang akan didengar oleh dashboard
+const topicSub = "monitoring/power/data"; 
 // ============================================================
 
 const clientId = "web_power_client_" + Math.random().toString(16).substr(2, 8);
@@ -44,9 +44,7 @@ function onConnectionLost(responseObject) {
 }
 
 // ==================== INISIALISASI GRAFIK (CHART.JS) ====================
-const maxDataPoints = 15; // Batas maksimal titik data yang tampil di grafik (geser otomatis)
-
-// Opsi konfigurasi umum untuk tampilan grafik Dark Mode
+const maxDataPoints = 15; 
 const chartOptions = {
     responsive: true,
     scales: {
@@ -56,90 +54,137 @@ const chartOptions = {
     plugins: { legend: { labels: { color: '#abb2bf' } } }
 };
 
-// 1. Inisialisasi Grafik Tegangan (Voltage Chart)
 const ctxV = document.getElementById('voltageChart').getContext('2d');
 const voltageChart = new Chart(ctxV, {
     type: 'line',
     data: {
-        labels: [], // Label Waktu (Sumbu X)
+        labels: [], 
         datasets: [
-            { label: 'Fasa R', data: [], borderColor: '#e06c75', tension: 0.3, pointRadius: 2 },
-            { label: 'Fasa S', data: [], borderColor: '#d19a66', tension: 0.3, pointRadius: 2 },
-            { label: 'Fasa T', data: [], borderColor: '#61afef', tension: 0.3, pointRadius: 2 }
+            { label: 'Phase R', data: [], borderColor: '#e06c75', tension: 0.2, pointRadius: 2 },
+            { label: 'Phase S', data: [], borderColor: '#d19a66', tension: 0.2, pointRadius: 2 },
+            { label: 'Phase T', data: [], borderColor: '#61afef', tension: 0.2, pointRadius: 2 }
         ]
     },
     options: chartOptions
 });
 
-// 2. Inisialisasi Grafik Arus (Current Chart)
 const ctxI = document.getElementById('currentChart').getContext('2d');
 const currentChart = new Chart(ctxI, {
     type: 'line',
     data: {
-        labels: [], // Label Waktu (Sumbu X)
+        labels: [], 
         datasets: [
-            { label: 'Fasa R', data: [], borderColor: '#e06c75', tension: 0.3, pointRadius: 2 },
-            { label: 'Fasa S', data: [], borderColor: '#d19a66', tension: 0.3, pointRadius: 2 },
-            { label: 'Fasa T', data: [], borderColor: '#61afef', tension: 0.3, pointRadius: 2 }
+            { label: 'Phase R', data: [], borderColor: '#e06c75', tension: 0.2, pointRadius: 2 },
+            { label: 'Phase S', data: [], borderColor: '#d19a66', tension: 0.2, pointRadius: 2 },
+            { label: 'Phase T', data: [], borderColor: '#61afef', tension: 0.2, pointRadius: 2 }
         ]
     },
     options: chartOptions
 });
 
-// Fungsi pembantu untuk mendorong data baru dan menggeser data lama pada grafik
 function updateChartData(chart, labelTime, valR, valS, valT) {
     chart.data.labels.push(labelTime);
     chart.data.datasets[0].data.push(valR);
     chart.data.datasets[1].data.push(valS);
     chart.data.datasets[2].data.push(valT);
 
-    // Jika data melewati batas maxDataPoints, hapus data paling kiri/lama
     if (chart.data.labels.length > maxDataPoints) {
         chart.data.labels.shift();
         chart.data.datasets[0].data.shift();
         chart.data.datasets[1].data.shift();
         chart.data.datasets[2].data.shift();
     }
-    chart.update(); // Render ulang grafik secara real-time
+    chart.update();
 }
 
-// ========== FUNGSI UTAMA PARSING DATA DARI BROKER ==========
+// ========== PARSING & DATA PROCESSING ==========
 function onMessageArrived(message) {
     try {
         const data = JSON.parse(message.payloadString);
-        
-        // Mengambil waktu lokal PC/HP saat data masuk
         const now = new Date();
         const timeLabel = now.getHours().toString().padStart(2, '0') + ":" + 
                           now.getMinutes().toString().padStart(2, '0') + ":" + 
                           now.getSeconds().toString().padStart(2, '0');
         
-        // 1. UPDATE DATA PADA TABEL MONITORING (HTML)
-        if(data.vr !== undefined) document.getElementById("v-r").innerText = data.vr;
-        if(data.vs !== undefined) document.getElementById("v-s").innerText = data.vs;
-        if(data.vt !== undefined) document.getElementById("v-t").innerText = data.vt;
+        // 1. Ambil Nilai Mentah / Gunakan Default Simulasi jika Kosong
+        let vr = data.vr !== undefined ? parseFloat(data.vr) : 0;
+        let vs = data.vs !== undefined ? parseFloat(data.vs) : 0;
+        let vt = data.vt !== undefined ? parseFloat(data.vt) : 0;
         
-        if(data.ir !== undefined) document.getElementById("i-r").innerText = data.ir;
-        if(data.is !== undefined) document.getElementById("i-s").innerText = data.is;
-        if(data.it !== undefined) document.getElementById("i-t").innerText = data.it;
-        
-        if(data.kwr !== undefined) document.getElementById("kw-r").innerText = data.kwr;
-        if(data.kws !== undefined) document.getElementById("kw-s").innerText = data.kws;
-        if(data.kwt !== undefined) document.getElementById("kw-t").innerText = data.kwt;
-        
-        if(data.thdr !== undefined) document.getElementById("thd-r").innerText = data.thdr;
-        if(data.thds !== undefined) document.getElementById("thd-s").innerText = data.thds;
-        if(data.thdt !== undefined) document.getElementById("thd-t").innerText = data.thdt;
+        let ir = data.ir !== undefined ? parseFloat(data.ir) : 0;
+        let is = data.is !== undefined ? parseFloat(data.is) : 0;
+        let it = data.it !== undefined ? parseFloat(data.it) : 0;
 
-        // 2. UPDATE DATA PADA GRAFIK (Konversi String ke Angka Murni)
-        if(data.vr !== undefined && data.vs !== undefined && data.vt !== undefined) {
-            updateChartData(voltageChart, timeLabel, parseFloat(data.vr), parseFloat(data.vs), parseFloat(data.vt));
-        }
-        if(data.ir !== undefined && data.is !== undefined && data.it !== undefined) {
-            updateChartData(currentChart, timeLabel, parseFloat(data.ir), parseFloat(data.is), parseFloat(data.it));
+        let kwr = data.kwr !== undefined ? parseFloat(data.kwr) : 0;
+        let kws = data.kws !== undefined ? parseFloat(data.kws) : 0;
+        let kwt = data.kwt !== undefined ? parseFloat(data.kwt) : 0;
+
+        // Wadah Tambahan untuk Parameter Baru (Cosphi & THD)
+        let pfr = data.pfr !== undefined ? data.pfr : "0.98";
+        let pfs = data.pfs !== undefined ? data.pfs : "0.97";
+        let pft = data.pft !== undefined ? data.pft : "0.99";
+
+        let thdr = data.thdr !== undefined ? data.thdr : "1.2";
+        let thds = data.thds !== undefined ? data.thds : "1.4";
+        let thdt = data.thdt !== undefined ? data.thdt : "1.1"; 
+
+        // 2. Tampilkan Data Utama ke Tabel HTML
+        document.getElementById("v-r").innerText = vr || "--";
+        document.getElementById("v-s").innerText = vs || "--";
+        document.getElementById("v-t").innerText = vt || "--";
+        
+        document.getElementById("i-r").innerText = ir || "--";
+        document.getElementById("i-s").innerText = is || "--";
+        document.getElementById("i-t").innerText = it || "--";
+        
+        document.getElementById("kw-r").innerText = kwr || "--";
+        document.getElementById("kw-s").innerText = kws || "--";
+        document.getElementById("kw-t").innerText = kwt || "--";
+
+        document.getElementById("pf-r").innerText = pfr;
+        document.getElementById("pf-s").innerText = pfs;
+        document.getElementById("pf-t").innerText = pft;
+        
+        document.getElementById("thd-r").innerText = thdr;
+        document.getElementById("thd-s").innerText = thds;
+        document.getElementById("thd-t").innerText = thdt;
+
+        // 3. MATEMATIKA OTOMATIS: Update Wadah KPI Summary Cards atas
+        if(vr > 0 || vs > 0 || vt > 0) {
+            // Hitung Rata-rata Tegangan
+            let avgV = (vr + vs + vt) / 3;
+            document.getElementById("kpi-avg-v").innerHTML = avgV.toFixed(1) + "<span>V</span>";
+            
+            // Hitung Total kW
+            let totalKw = kwr + kws + kwt;
+            document.getElementById("kpi-total-kw").innerHTML = totalKw.toFixed(2) + "<span>kW</span>";
+            
+            // Tampilkan Frekuensi Statis Pabrik (bisa dimapping nanti)
+            document.getElementById("kpi-freq").innerHTML = "50.02<span>Hz</span>";
+
+            // Deteksi Keseimbangan Arus Sederhana (Maksimal selisih beban fasa)
+            let maxI = Math.max(ir, is, it);
+            let minI = Math.min(ir, is, it);
+            let statusCard = document.getElementById("kpi-status");
+            if ((maxI - minI) > 15 && minI > 0) { // Jika selisih antar fasa > 15 Ampere
+                statusCard.innerText = "UNBALANCED";
+                statusCard.style.color = "#e06c75";
+            } else {
+                statusCard.innerText = "BALANCED";
+                statusCard.style.color = "#98c379";
+            }
+
+            // Push ke Grafik
+            updateChartData(voltageChart, timeLabel, vr, vs, vt);
+            updateChartData(currentChart, timeLabel, ir, is, it);
         }
 
     } catch (e) {
-        console.log("Gagal memproses data atau memperbarui grafik: " + e);
+        console.log("Error processing dashboard layout: " + e);
     }
+}
+
+// Simulasi wadah fitur ekspor data log ke depan
+function exportData() {
+    alert("Fitur Export Log Data Panel Sukses Disiapkan! (Siap dihubungkan ke Database/Local Storage nanti)");
 }
